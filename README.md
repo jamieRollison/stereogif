@@ -1,4 +1,5 @@
 Group Name
+stereogif
 
 Group member names and NetIDs
 Cole Zimmerman (coleaz2)
@@ -6,7 +7,6 @@ Jamie Rollison (jamesrr3)
 Owen Cushing (owenpc2)
 
 #Project Introduction
-Please provide a brief description of your project. List the goals and objectives of your project and explain why you’ve chosen to work on this project.
 The Nimslo 3D is a camera with 4 lenses that takes 4 simultaneous exposures. When the images are developed digitally, they can be put together to make a 3D gif, but "putting together" requires manually making the gif in photoshop. Our project automates this process, with several customization tools and algorithms for developing these sorts of images and other stereoscopic imagery.
 
 System Overview
