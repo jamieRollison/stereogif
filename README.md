@@ -16,4 +16,4 @@ Please provide a moderate-length technical description of the major components o
 A major hurdle will be representing JPG data in a way that can be modified, and outputting our modified data in the form of a GIF. 
 
 ## References
-The formula we used for finding the maximum information or "energy" in the image was given to us in 128.
+The implementation of a linked list was adapted from homework 8 of this class.
