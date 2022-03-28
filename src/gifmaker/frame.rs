@@ -1,10 +1,7 @@
-extern crate show_image;
 extern crate jpeg_decoder;
 use jpeg_decoder::Decoder;
 use std::fs::File;
 use std::io::BufReader;
-
-use show_image::{ImageView, ImageInfo, create_window, PixelFormat};
 
 
 /// our personal way to encapsulate image data.
@@ -16,19 +13,20 @@ pub struct Frame {
   width: u16,
 
   pixels: Vec<u8>,
-  pivot_pixel: u8
+  pivot_pixel: (u16,u16)
 }
 
 impl Frame {
   pub fn new(filename: String) -> Frame {
     let (pixels, metadata) = Frame::read(filename);
-    Frame {
+    let frame = Frame {
         metadata,
         height: metadata.height,
         width: metadata.width,
         pixels,
-        pivot_pixel: Frame::choose_pivot()
-    }
+        pivot_pixel: (metadata.width / 2, metadata.height / 2)
+    };
+    frame
   }
 
   /// decodes an image
@@ -40,23 +38,34 @@ impl Frame {
     (pixels, metadata)
   }
 
-  /// have the user choose the pivot point
-  fn choose_pivot() -> u8 {
-    0
+  /// Getter for the x value of the pivot.
+  pub fn pivot_x(&self) -> u16 {
+    self.pivot_pixel.0.clone()
   }
 
-  pub fn render(&self) -> Result<(), Box<dyn std::error::Error>> {
-    let image = 
-      ImageView::new(ImageInfo::new(
-        PixelFormat::Rgb8, 
-        self.width.into(), 
-        self.height.into()), 
-        &self.pixels[..]
-       );
-    // Create a window with default options and display the image.
-    let window = create_window("image", Default::default())?;
-    window.set_image("image-001", image)?;
-    window.wait_until_destroyed().unwrap();
-    Ok(())
+  /// Getter for the y value of the pivot.
+  pub fn pivot_y(&self) -> u16 {
+    self.pivot_pixel.1.clone()
+  }
+
+  /// Getter for pixels
+  pub fn pixels(&self) -> Vec<u8> {
+    self.pixels.clone()
+  }
+
+  /// getter for height
+  pub fn height(&self) -> u16 {
+    self.height
+  }
+
+  /// getter for width
+  pub fn width(&self) -> u16{
+    self.width
+  }
+
+  /// setter for pivot point
+  pub fn set_pivot(&mut self, pivot: (u16, u16)) {
+    self.pivot_pixel = pivot;
   }
 }
+
