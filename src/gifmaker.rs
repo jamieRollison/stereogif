@@ -1,7 +1,6 @@
 pub mod frame;
 use frame::Frame;
 extern crate show_image;
-use gif::Encoder;
 use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, event::WindowEvent, glam::Vec2};
 extern crate gif;
 use std::fs::File;
@@ -11,7 +10,7 @@ use std::thread::{JoinHandle};
 
 /// this function will take in frames and create a gif.
 /// it will output to the specified filepath.
-pub fn make(frames: &mut Vec<Frame>, filename: String) {
+pub fn make(mut frames: Vec<Frame>, filename: String) {
   let frame_options = show_image::WindowOptions {
     preserve_aspect_ratio: true,
     background_color: show_image::Color{red: 0., green: 0., blue: 0., alpha: 0.},
@@ -23,14 +22,18 @@ pub fn make(frames: &mut Vec<Frame>, filename: String) {
     default_controls: false,
   };
 
-  
   let window = create_window("Please click the point about which the image should pivot", frame_options).unwrap();
   for frame in frames.iter_mut() {
     render_frame(frame, &window).unwrap();
     choose_pivots(frame, &window);
   }
   window.run_function(|w| {w.destroy();});
+  align(&mut frames);
+
+  let start = std::time::Instant::now();
   output(frames,filename);
+  let elapsed = start.elapsed();
+  println!("output takes: {} ms", elapsed.as_millis());
 }
 
 /// overloaded render, changes the existing window instead of creating a new one
@@ -74,39 +77,65 @@ pub fn choose_pivots(frame: &mut Frame, window: &WindowProxy) {
   frame.set_pivot(pivot_pixel);
 }
 
-fn output(frames: &mut Vec<Frame>, filename: String) {
+fn output(frames: Vec<Frame>, filename: String) {
   let mut output_file = File::create(filename).unwrap();
   let mut encoder = gif::Encoder::new(
     &mut output_file, 
     frames.get(0).unwrap().width(), 
     frames.get(0).unwrap().height(),
     &[]).unwrap();
+  encoder.set_repeat(gif::Repeat::Infinite).unwrap();
+
+  let (handles, receiver) = split(frames);
+  for handle in handles {
+    handle.join().unwrap();
+    println!("done encoding a frame");
+  }
+
+  let mut frames_in_order = sort_received(receiver);
+
+  for gif_frame in frames_in_order.iter() {
+    encoder.write_frame(gif_frame).unwrap();
+  }
+
+  // add the frames (but not the beginning or end) to create a looping effect
+  // this can be destructive because it is the last thing the program does
+  frames_in_order.pop().unwrap();
+  frames_in_order.reverse();
+  frames_in_order.pop();
+  for gif_frame in frames_in_order.iter() {
+    encoder.write_frame(gif_frame).unwrap();
+  }
 }
 
-
-fn split(frames: &mut Vec<Frame>, encoder: Encoder<&mut File>) {
+fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'static>)>) {
   let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
-  let (tx,rx) : (Sender<gif::Frame>, Receiver<gif::Frame>) = channel();
+  let (tx,rx) : (Sender<(u8, gif::Frame)>, Receiver<(u8, gif::Frame)>) = channel();
   println!("Outputting frames to gif. This may take a few minutes");
-  for frame in frames.iter_mut() {
+  for frame in frames {
+    let tx_ = tx.clone();
     join_handles.push(thread::spawn(move || {
-      let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+      println!("encoding frame...");
+      let mut gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+      gif_frame.delay = 12; // we chose .12 s per frame because it looks nice :)
+      tx_.send((frame.order(), gif_frame)).unwrap();
     }));
   }
-  // // have it loop the other way
-  // let mut reverse_frame_iter = frames.iter_mut().rev();
-  // reverse_frame_iter.next();
-  // for frame in  reverse_frame_iter {
-  //   let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
-  //   encoder.write_frame(&gif_frame).unwrap();
-  // }
+  drop(tx);
+  (join_handles, rx)
+}
 
-  for handle in join_handles {
-    handle.join().unwrap();
+fn sort_received(received: Receiver<(u8, gif::Frame<'static>)>) -> Vec<gif::Frame<'static>> {
+  let mut received_as_vec: Vec<(u8, gif::Frame)> = Vec::new();
+  let mut frame_vector: Vec<gif::Frame<'static>> = Vec::new();
+  for item in received {
+    received_as_vec.push(item);
   }
-
-  // recv
-  // encoder.write_frame(&gif_frame).unwrap();
+  received_as_vec.sort_by(|a,b|a.0.cmp(&b.0));
+  for frame in received_as_vec {
+    frame_vector.push(frame.1);
+  }
+  frame_vector
 }
 
 /// BETTER METHOD:

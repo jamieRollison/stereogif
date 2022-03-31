@@ -7,7 +7,7 @@ use std::io::BufReader;
 /// most of it will be taken from the one outlined in jpeg_decoder, so it aligns mostly with that.
 /// however, it will also include the things we will need to put the frames together.
 pub struct Frame {
-  metadata: jpeg_decoder::ImageInfo,
+  order: u8,
   height: u16,
   width: u16,
 
@@ -16,10 +16,10 @@ pub struct Frame {
 }
 
 impl Frame {
-  pub fn new(filename: String) -> Frame {
+  pub fn new(filename: String, order: u8) -> Frame {
     let (pixels, metadata) = Frame::read(filename);
     Frame {
-        metadata,
+        order,
         height: metadata.height,
         width: metadata.width,
         pixels,
@@ -29,7 +29,7 @@ impl Frame {
 
   /// decodes an image
   fn read(filename: String) -> (Vec<u8>, jpeg_decoder::ImageInfo) {
-    let file = File::open(filename).expect("failed to open file");
+    let file = File::open(filename.clone()).expect(&format!("failed to open {}", filename.clone()));
     let mut decoder = Decoder::new(BufReader::new(file));
     let pixels = decoder.decode().expect("failed to decode image");
     let metadata = decoder.info().unwrap();
@@ -59,6 +59,10 @@ impl Frame {
   /// getter for width
   pub fn width(&self) -> u16{
     self.width
+  }
+
+  pub fn order(&self) -> u8 {
+    self.order
   }
 
   /// setter for pivot point
