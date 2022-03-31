@@ -18,14 +18,13 @@ pub struct Frame {
 impl Frame {
   pub fn new(filename: String) -> Frame {
     let (pixels, metadata) = Frame::read(filename);
-    let frame = Frame {
+    Frame {
         metadata,
         height: metadata.height,
         width: metadata.width,
         pixels,
         pivot_pixel: (metadata.width / 2, metadata.height / 2)
-    };
-    frame
+    }
   }
 
   /// decodes an image

@@ -109,12 +109,27 @@ fn split(frames: &mut Vec<Frame>, encoder: Encoder<&mut File>) {
   // encoder.write_frame(&gif_frame).unwrap();
 }
 
+/// BETTER METHOD:
+/// Once we have all the points of each image we can calculate the crop of 
+/// each image independently of each other, and apply the crops on a seperate
+/// thread for each image. That way, we don't have to compare images to each 
+/// other or anything. 
+/// 
+/// Given the vector of alignment points, figure out the delta / difference 
+/// between each alignment point, then from the height and width of each image,
+/// determine the crop that will be applied to each image.
+/// 
+/// We will have to develop the algorithm / math determining the crop of each
+/// image, but in the end, we should have a set of images of the same size
+/// with all the alignment points at the same point on the image.
+
+
 /// this function takes each frame and lines them up based on pivot point.
 /// it does this by:
 /// 1) start with the first frame. it will be the base.
 /// 2) take the second frame. Consider the deltas (x and y) between the first pivot and the second.
 ///    if the delta is positive (first - second), the first dy rows of the first frame will be dropped and the first dx entries
-///    in each column will be dropped. then the last dy rows and dx columns of the remaining rows will be dropped on the decond frame.
+///    in each column will be dropped. then the last dy rows and dx columns of the remaining rows will be dropped on the second frame.
 ///    if the delta is negative, the reverse will happen (ie the first row will have its end parts dropped).
 ///    the crops are done in the functions crop_top(), crop_bottom(), crop_left(), and crop_right().
 /// 3) compare frame n to frame n-1 by repeating step 2 for each frame.
