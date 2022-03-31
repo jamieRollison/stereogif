@@ -3,7 +3,6 @@ use jpeg_decoder::Decoder;
 use std::fs::File;
 use std::io::BufReader;
 
-
 /// our personal way to encapsulate image data.
 /// most of it will be taken from the one outlined in jpeg_decoder, so it aligns mostly with that.
 /// however, it will also include the things we will need to put the frames together.

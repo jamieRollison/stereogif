@@ -1,13 +1,14 @@
 pub mod frame;
-use std::sync::mpsc::*;
+use frame::Frame;
 extern crate show_image;
 use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, event::WindowEvent, glam::Vec2};
-use frame::Frame;
-extern crate image;
+extern crate gif;
+use std::fs::File;
+use std::sync::mpsc::*;
 
 /// this function will take in frames and create a gif.
 /// it will output to the specified filepath.
-pub fn output(frames: &mut Vec<Frame>, filename: String) {
+pub fn make(frames: &mut Vec<Frame>, filename: String) {
   let frame_options = show_image::WindowOptions {
     preserve_aspect_ratio: true,
     background_color: show_image::Color{red: 0., green: 0., blue: 0., alpha: 0.},
@@ -19,11 +20,14 @@ pub fn output(frames: &mut Vec<Frame>, filename: String) {
     default_controls: false,
   };
 
+  
   let window = create_window("Please click the point about which the image should pivot", frame_options).unwrap();
-  for frame in frames {
+  for frame in frames.iter_mut() {
     render_frame(frame, &window).unwrap();
-  choose_pivots(frame, &window);
+    choose_pivots(frame, &window);
   }
+
+  output(frames,filename);
 }
 
 /// overloaded render, changes the existing window instead of creating a new one
@@ -49,7 +53,6 @@ pub fn choose_pivots(frame: &mut Frame, window: &WindowProxy) {
     match event {
       WindowEvent::MouseButton(mouse_event) => {
         if mouse_event.button.is_left() && mouse_event.state.is_pressed() {
-          println!("{:?}", mouse_event.position);
           match coord_tx.send(mouse_event.position) {
             Ok(_) => {},
             Err(_) => {}
@@ -64,7 +67,21 @@ pub fn choose_pivots(frame: &mut Frame, window: &WindowProxy) {
     Err(_) => {panic!("You will need to click on the pivot point."); }
   };
   let pivot_pixel = ((vec2_coords.x as f32 * 2_f32.sqrt()) as u16, (vec2_coords.y as f32 * 2_f32.sqrt()) as u16);
+  println!("{:?}", pivot_pixel);
   frame.set_pivot(pivot_pixel);
+}
+
+fn output(frames: &mut Vec<Frame>, filename: String) {
+  let mut output_file = File::create(filename).unwrap();
+  let mut encoder = gif::Encoder::new(
+    &mut output_file, 
+    frames.get(0).unwrap().width(), 
+    frames.get(0).unwrap().height(),
+    &[]).unwrap();
+  for frame in frames.iter_mut() {
+    let gif_frame = gif::Frame::from_rgb(100, 100, &mut frame.pixels());
+    encoder.write_frame(&gif_frame).unwrap();
+  }
 }
 
 /// this function takes each frame and lines them up based on pivot point.

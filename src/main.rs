@@ -27,9 +27,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   for path in paths {
     frames.push(Frame::new(path.unwrap().path().display().to_string()));
   }
-
-  let frame = Frame::new("C:/Users/james/Documents/cs128/cs128env/src/stereogif/test_data/owen_cup_1.jpg".into());
-  gifmaker::output(&mut frames, output_directory);
+  
+  gifmaker::make(&mut frames, output_directory);
   Ok(())
 }
 
