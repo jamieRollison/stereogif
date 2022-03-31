@@ -5,6 +5,7 @@ use gif::Encoder;
 use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, event::WindowEvent, glam::Vec2};
 extern crate gif;
 use std::fs::File;
+use std::thread;
 use std::sync::mpsc::*;
 use std::thread::{JoinHandle};
 
@@ -80,20 +81,18 @@ fn output(frames: &mut Vec<Frame>, filename: String) {
     frames.get(0).unwrap().width(), 
     frames.get(0).unwrap().height(),
     &[]).unwrap();
-
-  
 }
 
 
 fn split(frames: &mut Vec<Frame>, encoder: Encoder<&mut File>) {
-  
   let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
+  let (tx,rx) : (Sender<gif::Frame>, Receiver<gif::Frame>) = channel();
   println!("Outputting frames to gif. This may take a few minutes");
-  //for frame in frames.iter_mut() {
-  //   join_handles.push(thread::spawn(move || {
-  //     let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
-  //   }));
-  // }
+  for frame in frames.iter_mut() {
+    join_handles.push(thread::spawn(move || {
+      let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+    }));
+  }
   // // have it loop the other way
   // let mut reverse_frame_iter = frames.iter_mut().rev();
   // reverse_frame_iter.next();
