@@ -9,9 +9,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let args: Vec<String> = env::args().collect();
   println!("{:?}", args);
   if args.len() == 1 {
-    panic!("Usage: -d \"path\": specify a directory to pull images from. -o \"file\": specify an output file for the GIF.");
+    panic!("Usage: -i \"path\": specify a directory to pull images from. -o \"file\": specify an output file for the GIF.");
   }
-  let input_directory = match args.iter().position(|flag| flag == "-d") {
+  let input_directory = match args.iter().position(|flag| flag == "-i") {
     Some(index) => { args.get(index+1).unwrap().to_string() },
     None => "".to_string()
   };

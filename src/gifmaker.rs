@@ -1,10 +1,12 @@
 pub mod frame;
 use frame::Frame;
 extern crate show_image;
+use gif::Encoder;
 use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, event::WindowEvent, glam::Vec2};
 extern crate gif;
 use std::fs::File;
 use std::sync::mpsc::*;
+use std::thread::{self, JoinHandle};
 
 /// this function will take in frames and create a gif.
 /// it will output to the specified filepath.
@@ -26,7 +28,7 @@ pub fn make(frames: &mut Vec<Frame>, filename: String) {
     render_frame(frame, &window).unwrap();
     choose_pivots(frame, &window);
   }
-
+  window.run_function(|w| {w.destroy();});
   output(frames,filename);
 }
 
@@ -78,10 +80,34 @@ fn output(frames: &mut Vec<Frame>, filename: String) {
     frames.get(0).unwrap().width(), 
     frames.get(0).unwrap().height(),
     &[]).unwrap();
-  for frame in frames.iter_mut() {
-    let gif_frame = gif::Frame::from_rgb(100, 100, &mut frame.pixels());
-    encoder.write_frame(&gif_frame).unwrap();
+
+  
+}
+
+
+fn split(frames: &mut Vec<Frame>, encoder: Encoder<&mut File>) {
+  
+  let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
+  println!("Outputting frames to gif. This may take a few minutes");
+  //for frame in frames.iter_mut() {
+  //   join_handles.push(thread::spawn(move || {
+  //     let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+  //   }));
+  // }
+  // // have it loop the other way
+  // let mut reverse_frame_iter = frames.iter_mut().rev();
+  // reverse_frame_iter.next();
+  // for frame in  reverse_frame_iter {
+  //   let gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+  //   encoder.write_frame(&gif_frame).unwrap();
+  // }
+
+  for handle in join_handles {
+    handle.join().unwrap();
   }
+
+  // recv
+  // encoder.write_frame(&gif_frame).unwrap();
 }
 
 /// this function takes each frame and lines them up based on pivot point.
