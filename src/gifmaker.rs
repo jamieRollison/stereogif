@@ -6,7 +6,7 @@ use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, 
 extern crate gif;
 use std::fs::File;
 use std::sync::mpsc::*;
-use std::thread::{self, JoinHandle};
+use std::thread::{JoinHandle};
 
 /// this function will take in frames and create a gif.
 /// it will output to the specified filepath.
