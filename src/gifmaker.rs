@@ -30,10 +30,7 @@ pub fn make(mut frames: Vec<Frame>, filename: String) {
   window.run_function(|w| {w.destroy();});
   align(&mut frames);
 
-  let start = std::time::Instant::now();
-  output(frames,filename);
-  let elapsed = start.elapsed();
-  println!("output takes: {} ms", elapsed.as_millis());
+  output(frames,filename);  
 }
 
 /// overloaded render, changes the existing window instead of creating a new one
@@ -78,6 +75,7 @@ pub fn choose_pivots(frame: &mut Frame, window: &WindowProxy) {
 }
 
 fn output(frames: Vec<Frame>, filename: String) {
+  // prepare to encode file
   let mut output_file = File::create(filename).unwrap();
   let mut encoder = gif::Encoder::new(
     &mut output_file, 
@@ -86,14 +84,26 @@ fn output(frames: Vec<Frame>, filename: String) {
     &[]).unwrap();
   encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
+  // measure the start time for debugging purposes
+  let start = std::time::Instant::now();
+
+  // split up the frames so they will be encoded in parallel
   let (handles, receiver) = split(frames);
+
+  // in the meantime, the user can look at the image
+
+  // wait for the frames to finish being encoded
   for handle in handles {
     handle.join().unwrap();
     println!("done encoding a frame");
   }
+  let elapsed = start.elapsed();
+  println!("output takes: {} ms", elapsed.as_millis());
 
+  // the frames may come back out of order. they need to be sorted
   let mut frames_in_order = sort_received(receiver);
 
+  // write the frames to the output file
   for gif_frame in frames_in_order.iter() {
     encoder.write_frame(gif_frame).unwrap();
   }
@@ -108,6 +118,7 @@ fn output(frames: Vec<Frame>, filename: String) {
   }
 }
 
+// encodes the frames as a GIF frame. Multithreading speeds this up significantly
 fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'static>)>) {
   let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
   let (tx,rx) : (Sender<(u8, gif::Frame)>, Receiver<(u8, gif::Frame)>) = channel();
@@ -116,7 +127,7 @@ fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'
     let tx_ = tx.clone();
     join_handles.push(thread::spawn(move || {
       println!("encoding frame...");
-      let mut gif_frame = gif::Frame::from_rgb(frame.width(), frame.height(), &mut frame.pixels());
+      let mut gif_frame = gif::Frame::from_rgb_speed(frame.width(), frame.height(), &mut frame.pixels(), 30);
       gif_frame.delay = 12; // we chose .12 s per frame because it looks nice :)
       tx_.send((frame.order(), gif_frame)).unwrap();
     }));
@@ -151,31 +162,14 @@ fn sort_received(received: Receiver<(u8, gif::Frame<'static>)>) -> Vec<gif::Fram
 /// We will have to develop the algorithm / math determining the crop of each
 /// image, but in the end, we should have a set of images of the same size
 /// with all the alignment points at the same point on the image.
-
-
-/// this function takes each frame and lines them up based on pivot point.
-/// it does this by:
-/// 1) start with the first frame. it will be the base.
-/// 2) take the second frame. Consider the deltas (x and y) between the first pivot and the second.
-///    if the delta is positive (first - second), the first dy rows of the first frame will be dropped and the first dx entries
-///    in each column will be dropped. then the last dy rows and dx columns of the remaining rows will be dropped on the second frame.
-///    if the delta is negative, the reverse will happen (ie the first row will have its end parts dropped).
-///    the crops are done in the functions crop_top(), crop_bottom(), crop_left(), and crop_right().
-/// 3) compare frame n to frame n-1 by repeating step 2 for each frame.
+/// 
+/// 
+/// cole method:
+/// crop by:
+/// for all images, find min distance between pivot and left, right, up, and down
+/// crop by cutting from the minimum distance to the edge for each image 
 fn align(frames: &mut Vec<Frame>) {
-  // let mut last_frame = frames.get_mut(0).unwrap();
-  // let mut current_frame: &mut Frame;
-  // for index in 1..frames.len() {
-  //   current_frame = frames.get_mut(index).unwrap();
-  //   let (delta_x, delta_y) = (last_frame.pivot_x() - current_frame.pivot_x(), 
-  //                                       last_frame.pivot_y() - current_frame.pivot_y());
-                            
-  //   if delta_x < 0 {
-  //     crop_top(last_frame, &delta_x);
-  //     crop_bottom(current_frame, &delta_x);
-  //   }
-  //   last_frame = current_frame;
-  // }
+  
 }
 
 /// see documentation of align().
