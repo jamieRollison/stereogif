@@ -12,6 +12,8 @@ The Nimslo 3D is a camera with 4 lenses that takes 4 simultaneous exposures. Whe
 ## System Overview
 Please provide a moderate-length technical description of the major components of your project. This should also function as a sort of ‘roadmap’ for tasks you need to complete for your project to be functional.
 
+The user puts in a directory, and everything in the directory is found and used. We use a JPEG decoder crate to take each file and make it into a frame. Then the user is prompted to click the point on each frame that the gif should pivot around (this is usually an object such as a head, which will move slightly from frame to frame). The frames are aligned and cropped such that the pivot points line up. Then the frames are encoded into GIF format.
+
 ## Possible Challenges
 A major hurdle will be representing JPG data in a way that can be modified, and outputting our modified data in the form of a GIF. 
 
