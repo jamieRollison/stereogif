@@ -268,17 +268,18 @@ fn crop_left(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
   }
 }
 
-/// see documentation of align().
+/// Takes the amount in to cut off of each frame.
+/// it does this by clipping every width-th element out of each array.
 fn crop_right(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
   for index in 0..frames.len() {
     println!("Cropping frame {}", index);
     println!("cutting {} columns from the right", to_cut[index]);
     let frame = &mut frames[index];
-    frame.decrease_width(to_cut[index]);
     for row in 0..frame.height() {
-      let start = 3 * (row as usize+1) * (frame.width() - to_cut[index]) as usize;
+      let start = 3 * (row as usize + 1) * (frame.width() - to_cut[index]) as usize;
       frame.pixels_mut().drain(start..(start + 3 * to_cut[index] as usize));
     }
-    println!("width is now {}", frames[index].width());
+    println!("width is now {}", frame.width());
+    frame.decrease_width(to_cut[index]);
   }
 }

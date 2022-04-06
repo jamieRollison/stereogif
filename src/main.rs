@@ -28,3 +28,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   Ok(())
 }
 
+// fn main() {
+//   let mut vector: Vec<u16> = Vec::new();
+//   for i in 0..144 {
+//     vector.push(i);
+//   }
+//   let mut counter = 0;
+//   for _row in 0..9 {
+//     for _col in 0..16 {
+//       print!("{} ", vector[counter]);
+//       if counter < 10 {
+//         print!(" ");
+//       }
+//       if counter < 100 {
+//         print!(" ");
+//       }
+//       counter += 1;
+//     }
+//     println!();
+//   }
+//   for row in 0..9 {
+//     let start = (row + 1 as usize) * (16 - 2) as usize;
+//     vector.drain(start..(start + 2 as usize));
+//   }
+//   println!();
+//   counter = 0;
+//   for _row in 0..9 {
+//     for _col in 0..14 {
+//       if counter < 10 {
+//         print!(" ");
+//       }
+//       if counter < 94 {
+//         print!(" ");
+//       }
+//       print!("{} ", vector[counter]);
+//       counter += 1;
+//     }
+//     println!();
+//   }
+// }
