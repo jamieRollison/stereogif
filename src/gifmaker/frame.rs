@@ -38,17 +38,22 @@ impl Frame {
 
   /// Getter for the x value of the pivot.
   pub fn pivot_x(&self) -> u16 {
-    self.pivot_pixel.0.clone()
+    self.pivot_pixel.0
   }
 
   /// Getter for the y value of the pivot.
   pub fn pivot_y(&self) -> u16 {
-    self.pivot_pixel.1.clone()
+    self.pivot_pixel.1
   }
 
   /// Getter for pixels
-  pub fn pixels(&self) -> Vec<u8> {
-    self.pixels.clone()
+  pub fn pixels(&self) -> &Vec<u8> {
+    &self.pixels
+  }
+
+  /// getter for mut reference to pixels
+  pub fn pixels_mut(&mut self) -> &mut Vec<u8> {
+    &mut self.pixels
   }
 
   /// getter for height
@@ -59,6 +64,14 @@ impl Frame {
   /// getter for width
   pub fn width(&self) -> u16{
     self.width
+  }
+
+  pub fn decrease_height(&mut self, change_by: u16) {
+    self.height -= change_by;
+  }
+
+  pub fn decrease_width(&mut self, change_by: u16) {
+    self.width -= change_by;
   }
 
   pub fn order(&self) -> u8 {

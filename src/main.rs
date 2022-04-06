@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     frames.push(Frame::new(path.unwrap().path().display().to_string(), order_counter));
   }
   
-  gifmaker::make(frames, output_directory);
+  gifmaker::make(frames, &output_directory);
   Ok(())
 }
 
