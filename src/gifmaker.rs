@@ -28,12 +28,12 @@ pub fn make(mut frames: Vec<Frame>, filename: &String) {
     choose_pivots(frame, &window);
   }
   window.run_function(|w| {w.destroy();});
+  
   align(&mut frames);
-
   output(frames,filename);  
 }
 
-/// overloaded render, changes the existing window instead of creating a new one
+/// changes the existing window instead of creating a new one
 pub fn render_frame(frame: &Frame, window: &WindowProxy) -> Result<(), Box<dyn std::error::Error>> {
   let data = &frame.pixels()[..];
   let image = 
@@ -122,7 +122,7 @@ fn output(frames: Vec<Frame>, filename: &String) {
 fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'static>)>) {
   let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
   let (tx,rx) : (Sender<(u8, gif::Frame)>, Receiver<(u8, gif::Frame)>) = channel();
-  println!("Outputting frames to gif. This may take a few minutes");
+  println!("Outputting frames to gif. This should only take a few seconds");
   for frame in frames {
     let tx_ = tx.clone();
     join_handles.push(thread::spawn(move || {
@@ -169,6 +169,7 @@ fn sort_received(received: Receiver<(u8, gif::Frame<'static>)>) -> Vec<gif::Fram
 /// for all images, find min distance between pivot and left, right, up, and down
 /// crop by cutting from the minimum distance to the edge for each image 
 fn align(frames: &mut Vec<Frame>) {
+  let start = std::time::Instant::now();
   let top_distance = find_distances_from_top(frames);
   let bot_distance = find_distances_from_bottom(frames);
   let left_distance = find_distances_from_left(frames);
@@ -177,6 +178,8 @@ fn align(frames: &mut Vec<Frame>) {
   crop_bottom(frames, bot_distance);
   crop_left(frames, left_distance);
   crop_right(frames, right_distance);
+  let elapsed = start.elapsed();
+  println!("cropping takes: {} ms", elapsed.as_millis());
   println!("new dimensions are {} by {}", frames[0].width(), frames[0].height());
 }
 
@@ -235,8 +238,6 @@ fn find_distances_from_right(frames: &mut Vec<Frame>) -> Vec<u16> {
 /// see documentation of align().
 fn crop_top(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
   for index in 0..frames.len() {
-    println!("cutting {} lines", to_cut[index]);
-    println!("height is {} so new height will be {}", frames[index].height(), frames[index].height() - to_cut[index]);
     let amount_to_cut = (frames[index].width() as u64 * to_cut[index] as u64 * 3) as usize;
     frames[index].decrease_height(to_cut[index]);
     *frames[index].pixels_mut() = frames[index].pixels_mut()[amount_to_cut..].to_vec();
@@ -250,15 +251,12 @@ fn crop_bottom(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
     let bottom_edge = frames[index].pixels().len() - amount_to_cut as usize;
     frames[index].decrease_height(to_cut[index]);
     *frames[index].pixels_mut() = frames[index].pixels_mut()[..bottom_edge].to_vec();
-    println!("height is now {}", frames[index].height());
   }
 }
 
 /// see documentation of align().
 fn crop_left(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
   for index in 0..frames.len() {
-    println!("Cropping frame {}", index);
-    println!("cutting {} columns from the left", to_cut[index]);
     let frame = &mut frames[index];
     for row in 0..frame.height() {
       let start = 3 * (row as usize) * (frame.width() - to_cut[index]) as usize;
@@ -272,14 +270,11 @@ fn crop_left(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
 /// it does this by clipping every width-th element out of each array.
 fn crop_right(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
   for index in 0..frames.len() {
-    println!("Cropping frame {}", index);
-    println!("cutting {} columns from the right", to_cut[index]);
     let frame = &mut frames[index];
     for row in 0..frame.height() {
       let start = 3 * (row as usize + 1) * (frame.width() - to_cut[index]) as usize;
       frame.pixels_mut().drain(start..(start + 3 * to_cut[index] as usize));
     }
-    println!("width is now {}", frame.width());
     frame.decrease_width(to_cut[index]);
   }
 }

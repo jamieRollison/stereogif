@@ -13,3 +13,6 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+# No need to download test gif output
+/output
