@@ -1,4 +1,5 @@
 pub mod frame;
+pub mod process;
 use frame::Frame;
 extern crate show_image;
 use show_image::{ImageView, ImageInfo, create_window, PixelFormat, WindowProxy, event::WindowEvent, glam::Vec2};
@@ -22,6 +23,7 @@ pub fn make(mut frames: Vec<Frame>, filename: &String) {
     default_controls: false,
   };
 
+  println!("You will be shown the images in order. Click the pivot on each one (try to be exact as possible)");
   let window = create_window("Please click the point about which the image should pivot", frame_options).unwrap();
   for frame in frames.iter_mut() {
     render_frame(frame, &window).unwrap();
@@ -29,7 +31,7 @@ pub fn make(mut frames: Vec<Frame>, filename: &String) {
   }
   window.run_function(|w| {w.destroy();});
   
-  align(&mut frames);
+  process::align(&mut frames);
   output(frames,filename);  
 }
 
@@ -70,7 +72,7 @@ pub fn choose_pivots(frame: &mut Frame, window: &WindowProxy) {
     Err(_) => {panic!("You will need to click on the pivot point."); }
   };
   let pivot_pixel = ((vec2_coords.x as f32 * 2_f32.sqrt()) as u16, (vec2_coords.y as f32 * 2_f32.sqrt()) as u16);
-  println!("{:?}", pivot_pixel);
+  // println!("{:?}", pivot_pixel);
   frame.set_pivot(pivot_pixel);
 }
 
@@ -85,7 +87,7 @@ fn output(frames: Vec<Frame>, filename: &String) {
   encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
   // measure the start time for debugging purposes
-  let start = std::time::Instant::now();
+  // let start = std::time::Instant::now();
 
   // split up the frames so they will be encoded in parallel
   let (handles, receiver) = split(frames);
@@ -95,11 +97,11 @@ fn output(frames: Vec<Frame>, filename: &String) {
   // wait for the frames to finish being encoded
   for handle in handles {
     handle.join().unwrap();
-    println!("done encoding a frame");
+    // println!("done encoding a frame");
   }
-  let elapsed = start.elapsed();
-  println!("output takes: {} ms", elapsed.as_millis());
-
+  // let elapsed = start.elapsed();
+  // println!("output takes: {} ms", elapsed.as_millis());
+  println!("Saving to {}", &filename);
   // the frames may come back out of order. they need to be sorted
   let mut frames_in_order = sort_received(receiver);
 
@@ -122,11 +124,11 @@ fn output(frames: Vec<Frame>, filename: &String) {
 fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'static>)>) {
   let mut join_handles: Vec<JoinHandle<()>> = Vec::new();
   let (tx,rx) : (Sender<(u8, gif::Frame)>, Receiver<(u8, gif::Frame)>) = channel();
-  println!("Outputting frames to gif. This should only take a few seconds");
+  println!("Encoding the frames as a gif. This should only take a few seconds");
   for frame in frames {
     let tx_ = tx.clone();
     join_handles.push(thread::spawn(move || {
-      println!("encoding frame...");
+      // println!("encoding frame...");
       let mut gif_frame = gif::Frame::from_rgb_speed(frame.width(), frame.height(), &mut frame.pixels(), 30);
       gif_frame.delay = 12; // we chose .12 s per frame because it looks nice :)
       tx_.send((frame.order(), gif_frame)).unwrap();
@@ -147,134 +149,4 @@ fn sort_received(received: Receiver<(u8, gif::Frame<'static>)>) -> Vec<gif::Fram
     frame_vector.push(frame.1);
   }
   frame_vector
-}
-
-/// BETTER METHOD:
-/// Once we have all the points of each image we can calculate the crop of 
-/// each image independently of each other, and apply the crops on a seperate
-/// thread for each image. That way, we don't have to compare images to each 
-/// other or anything. 
-/// 
-/// Given the vector of alignment points, figure out the delta / difference 
-/// between each alignment point, then from the height and width of each image,
-/// determine the crop that will be applied to each image.
-/// 
-/// We will have to develop the algorithm / math determining the crop of each
-/// image, but in the end, we should have a set of images of the same size
-/// with all the alignment points at the same point on the image.
-/// 
-/// 
-/// cole method:
-/// crop by:
-/// for all images, find min distance between pivot and left, right, up, and down
-/// crop by cutting from the minimum distance to the edge for each image 
-fn align(frames: &mut Vec<Frame>) {
-  let start = std::time::Instant::now();
-  let top_distance = find_distances_from_top(frames);
-  let bot_distance = find_distances_from_bottom(frames);
-  let left_distance = find_distances_from_left(frames);
-  let right_distance = find_distances_from_right(frames);
-  crop_top(frames, top_distance);
-  crop_bottom(frames, bot_distance);
-  crop_left(frames, left_distance);
-  crop_right(frames, right_distance);
-  let elapsed = start.elapsed();
-  println!("cropping takes: {} ms", elapsed.as_millis());
-  println!("new dimensions are {} by {}", frames[0].width(), frames[0].height());
-}
-
-fn find_distances_from_top(frames: &mut Vec<Frame>) -> Vec<u16> {
-  let mut min_distances: Vec<u16> = Vec::new();
-  let mut y_values: Vec<u16> = Vec::new();
-  for frame in frames.iter() {
-    y_values.push(frame.pivot_y());
-  }
-  let min = y_values.iter().min().unwrap();
-  for value in y_values.iter() {
-    min_distances.push(value - min);
-  }
-  min_distances
-}
-
-fn find_distances_from_bottom(frames: &mut Vec<Frame>) -> Vec<u16> {
-  let mut min_distances: Vec<u16> = Vec::new();
-  let mut y_values: Vec<u16> = Vec::new();
-  for frame in frames.iter() {
-    y_values.push(frame.height() - frame.pivot_y());
-  }
-  let min = y_values.iter().min().unwrap();
-  for value in y_values.iter() {
-    min_distances.push(value - min);
-  }
-  min_distances
-}
-
-fn find_distances_from_left(frames: &mut Vec<Frame>) -> Vec<u16> {
-  let mut min_distances: Vec<u16> = Vec::new();
-  let mut x_values: Vec<u16> = Vec::new();
-  for frame in frames.iter() {
-    x_values.push(frame.pivot_x());
-  }
-  let min = x_values.iter().min().unwrap();
-  for value in x_values.iter() {
-    min_distances.push(value - min);
-  }
-  min_distances
-}
-
-fn find_distances_from_right(frames: &mut Vec<Frame>) -> Vec<u16> {
-  let mut min_distances: Vec<u16> = Vec::new();
-  let mut x_values: Vec<u16> = Vec::new();
-  for frame in frames.iter() {
-    x_values.push(frame.width() - frame.pivot_x());
-  }
-  let min = x_values.iter().min().unwrap();
-  for value in x_values.iter() {
-    min_distances.push(value - min);
-  }
-  min_distances
-}
-
-/// see documentation of align().
-fn crop_top(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
-  for index in 0..frames.len() {
-    let amount_to_cut = (frames[index].width() as u64 * to_cut[index] as u64 * 3) as usize;
-    frames[index].decrease_height(to_cut[index]);
-    *frames[index].pixels_mut() = frames[index].pixels_mut()[amount_to_cut..].to_vec();
-  }
-}
-
-/// see documentation of align().
-fn crop_bottom(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
-  for index in 0..frames.len() {
-    let amount_to_cut = frames[index].width() as u64 * to_cut[index] as u64 * 3;
-    let bottom_edge = frames[index].pixels().len() - amount_to_cut as usize;
-    frames[index].decrease_height(to_cut[index]);
-    *frames[index].pixels_mut() = frames[index].pixels_mut()[..bottom_edge].to_vec();
-  }
-}
-
-/// see documentation of align().
-fn crop_left(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
-  for index in 0..frames.len() {
-    let frame = &mut frames[index];
-    for row in 0..frame.height() {
-      let start = 3 * (row as usize) * (frame.width() - to_cut[index]) as usize;
-      frame.pixels_mut().drain(start..(start + 3 * to_cut[index] as usize));
-    }
-    frame.decrease_width(to_cut[index]);
-  }
-}
-
-/// Takes the amount in to cut off of each frame.
-/// it does this by clipping every width-th element out of each array.
-fn crop_right(frames: &mut Vec<Frame>, to_cut: Vec<u16>) {
-  for index in 0..frames.len() {
-    let frame = &mut frames[index];
-    for row in 0..frame.height() {
-      let start = 3 * (row as usize + 1) * (frame.width() - to_cut[index]) as usize;
-      frame.pixels_mut().drain(start..(start + 3 * to_cut[index] as usize));
-    }
-    frame.decrease_width(to_cut[index]);
-  }
 }
