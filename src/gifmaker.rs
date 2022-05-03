@@ -130,7 +130,7 @@ fn split(frames: Vec<Frame>) -> (Vec<JoinHandle<()>>, Receiver<(u8, gif::Frame<'
     join_handles.push(thread::spawn(move || {
       // println!("encoding frame...");
       let mut gif_frame = gif::Frame::from_rgb_speed(frame.width(), frame.height(), &mut frame.pixels(), 30);
-      gif_frame.delay = 12; // we chose .12 s per frame because it looks nice :)
+      gif_frame.delay = 14; // we chose .12 s per frame because it looks nice :)
       tx_.send((frame.order(), gif_frame)).unwrap();
     }));
   }

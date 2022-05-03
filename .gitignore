@@ -16,3 +16,9 @@ Cargo.lock
 
 # No need to download test gif output
 /output
+
+#we don't need all the newly developed film. some of them will be moved made into proper example folders
+/example_inputs/00011219
+/new_batch
+
+script.md

@@ -20,6 +20,7 @@ use crate::Frame;
 /// crop by cutting from the minimum distance to the edge for each image 
 pub fn align(frames: &mut Vec<Frame>) {
     // let start = std::time::Instant::now();
+    crop_top(frames, vec![208; 4]);
     let top_distance = find_distances_from_top(frames);
     let bot_distance = find_distances_from_bottom(frames);
     let left_distance = find_distances_from_left(frames);
