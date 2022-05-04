@@ -14,7 +14,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   }
   let input_directory = args[1].to_string();
   let output_directory = args[2].to_string();
-
   let paths = fs::read_dir(input_directory).unwrap();
 
   let mut frames: Vec<Frame> = Vec::new();
